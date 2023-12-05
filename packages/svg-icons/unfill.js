@@ -8,7 +8,7 @@ const argv = require("yargs").argv;
 const path = argv.path;
 
 r({
-    regex: /\sfill="(none|#212121)"/g,
+    regex: /\sfill="(none|#212121|#111827|#6B7280)"/g,
     replacement: '',
     paths: [path],
     recursive: true,
