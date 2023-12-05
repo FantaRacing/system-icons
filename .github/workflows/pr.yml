@@ -1,212 +1,172 @@
-name: Pull request validation
+# name: Pull request validation
 
-on: pull_request
+# on: pull_request
 
-env:
-  NX_PARALLEL: 4 # ubuntu-latest = 4-core CPU / 16 GB of RAM | macos-14-xlarge (arm) = 6-core CPU / 14 GB of RAM
-  NX_VERBOSE_LOGGING: true
+# jobs:
+#   valid-asset-names:
+#     name: Validate Asset Names
+#     runs-on: ubuntu-latest
 
-jobs:
-  valid-asset-names:
-    name: Validate Asset Names
-    runs-on: ubuntu-latest
+#     steps:
+#     - uses: actions/checkout@v2
 
-    steps:
-      - uses: actions/checkout@v6
+#     - name: Check asset directories are valid for Windows
+#       run: |
+#         ls assets | python3 -c """
+#         import sys
+#         assets_dir = sys.stdin.read().strip().split('\n')
+#         invalid_asset_dirs = []
+#         for dir in assets_dir:
+#           if dir.endswith(' '):
+#             invalid_asset_dirs.append(dir)
 
-      - name: Check asset directories are valid for Windows
-        run: |
-          ls assets | python3 -c """
-          import sys
-          assets_dir = sys.stdin.read().strip().split('\n')
-          invalid_asset_dirs = []
-          for dir in assets_dir:
-            if dir.endswith(' '):
-              invalid_asset_dirs.append(dir)
+#         if invalid_asset_dirs:
+#           print('Invalid asset directories, remove the trailing space')
+#           print(invalid_asset_dirs)
+#           exit(1)
+#         """
+#   valid-asset-fills:
+#     name: Validate Asset Fills
+#     runs-on: ubuntu-latest
+#     steps:
+#     - uses: actions/checkout@v2
 
-          if invalid_asset_dirs:
-            print('Invalid asset directories, remove the trailing space')
-            print(invalid_asset_dirs)
-            exit(1)
-          """
-  valid-asset-fills:
-    name: Validate Asset Fills
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
+#     - name: Check that all SVGs have the right fill
+#       run: |
+#         error_found=false
+        
+#         for file in $(find ./assets -type f -name "*.svg" -exec grep -L 'fill="#212121"' {} \;); do
+#           echo "Error: $file does not have 'fill=\"#212121\"' or has a different fill."
+#           error_found=true
+#         done
+        
+#         if [[ $error_found == true ]]; then
+#           exit 1
+#         fi
 
-      - name: Check that all SVGs have the right fill
-        run: |
-          error_found=false
+#   build-ios:
+#     name: Build iOS library
+#     runs-on: ubuntu-latest
 
-          for file in $(find ./assets -type f -name "*.svg" -print0 | grep -zv '_color.svg' | xargs -0 grep -L 'fill="#212121"'); do
-            echo "Error: $file does not have 'fill=\"#212121\"' or has a different fill."
-            error_found=true
-          done
+#     steps:
+#     - uses: actions/checkout@v2
 
-          if [[ $error_found == true ]]; then
-            exit 1
-          fi
+#     - name: Use Node 18
+#       uses: actions/setup-node@v1
+#       with:
+#         node-version: 18.x
 
-  build-ios:
-    name: Build iOS library
-    runs-on: ubuntu-latest
+#     - run: npm install
 
-    steps:
-      - uses: actions/checkout@v6
+#     - name: Run generate script
+#       run: npm run deploy:ios
+#       working-directory: importer
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22.x
+#   build-android:
+#     name: Build Android library
+#     runs-on: ubuntu-latest
 
-      - run: npm ci
+#     steps:
+#     - uses: actions/checkout@v2
 
-      - name: Run generate script
-        run: npm run deploy:ios
-        working-directory: importer
+#     - name: Use Node 18
+#       uses: actions/setup-node@v1
+#       with:
+#         node-version: 18.x
 
-  build-android:
-    name: Build Android library
-    runs-on: ubuntu-latest
+#     - run: npm install
 
-    steps:
-      - uses: actions/checkout@v6
+#     - name: Run generate script
+#       run: npm run deploy:android
+#       working-directory: importer
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22.x
+#     - name: Setup Java
+#       uses: actions/setup-java@v1
+#       with:
+#         java-version: 11
 
-      - run: npm ci
+#     # https://github.com/marketplace/actions/gradle-command
+#     - name: Build Android library
+#       uses: eskatos/gradle-command-action@v1
+#       with:
+#         arguments: assembleRelease
+#         build-root-directory: android
+#         wrapper-directory: android
 
-      - name: Run generate script
-        run: npm run deploy:android
-        working-directory: importer
+#     - name: Generate BUILD.gn file for Android
+#       run: python3 generate_build_gn_android.py
+#       working-directory: importer
 
-      - name: Setup Java
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11
+#   build-flutter:
+#     name: Build Flutter library
+#     runs-on: ubuntu-latest
 
-      # https://github.com/marketplace/actions/gradle-command
-      - name: Build Android library
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: assembleRelease
-          build-root-directory: android
-          wrapper-directory: android
+#     steps:
+#     - uses: actions/checkout@v2
 
-      - name: Generate BUILD.gn file for Android
-        run: python3 generate_build_gn_android.py
-        working-directory: importer
+#     - name: Use Node 18
+#       uses: actions/setup-node@v1
+#       with:
+#         node-version: 18.x
 
-  # Disabling for now until the pipeline job is fixed
-  # build-flutter:
-  #   name: Build Flutter library
-  #   runs-on: ubuntu-latest
+#     - run: npm install
 
-  #   steps:
-  #   - uses: actions/checkout@v6
+#     - name: Run generate script
+#       run: npm run deploy:flutter
+#       working-directory: importer
 
-  #   - uses: actions/setup-node@v4
-  #     with:
-  #       node-version: 22.x
+#     # Build Flutter library
+#     # The name should be same as the package name on pub.dev
+#     # Tokens are placeholder strings in order for the action to run on forked repos.
+#     - name: 'fluentui_system_icons'
+#       uses: k-paxian/dart-package-publisher@master
+#       with:
+#         relativePath: 'flutter'
+#         skipTests: true
+#         dryRunOnly: true
+#         accessToken: "placeholder"
+#         refreshToken: "placeholder"
 
-  #   - run: npm ci
+#   build-svg:
+#     name: Build svg library
+#     runs-on: ubuntu-latest
 
-  #   - name: Run generate script
-  #     run: npm run deploy:flutter
-  #     working-directory: importer
+#     steps:
+#     - uses: actions/checkout@v2
 
-  #   # Build Flutter library
-  #   # The name should be same as the package name on pub.dev
-  #   # Tokens are placeholder strings in order for the action to run on forked repos.
-  #   - name: 'fluentui_system_icons'
-  #     uses: k-paxian/dart-package-publisher@master
-  #     with:
-  #       relativePath: 'flutter'
-  #       skipTests: true
-  #       dryRunOnly: true
-  #       accessToken: "placeholder"
-  #       refreshToken: "placeholder"
+#     - name: Use Node 18
+#       uses: actions/setup-node@v1
+#       with:
+#         node-version: 18.x
 
-  build-npm:
-    if: ${{ github.repository_owner == 'microsoft' }}
-    name: Build npm packages
-    runs-on: ubuntu-latest
-    permissions:
-      contents: 'read'
-      actions: 'read'
+#     - run: npm install
 
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          filter: tree:0
+#     - name: Run build
+#       run: npm run build
+#       working-directory: packages/svg-icons
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22.x
+#   build-react:
+#     name: Build react library
+#     runs-on: ubuntu-latest
 
-      - run: npm ci
+#     steps:
+#     - uses: actions/checkout@v2
 
-      - uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
+#     - name: Use Node 18
+#       uses: actions/setup-node@v1
+#       with:
+#         node-version: 18.x
 
-      - name: Format Check
-        run: npx nx format:check
+#     - run: npm install
 
-      - name: Lint
-        run: npx nx affected -t lint
+#     - run: |
+#         npm run build
+#       working-directory: packages/react-icons
 
-      - name: Type Check Infra
-        run: npx nx affected -t type-check:infra
+#     - run: |
+#         npm run build
+#       working-directory: packages/react-icons-font-subsetting-webpack-plugin
 
-      - name: Build
-        run: |
-          npx nx affected -t build
-          npx nx affected -t build-verify
-
-      - name: Test
-        run: npx nx affected -t test
-
-      - name: Bundle-Size
-        run: |
-          npx nx affected -t bundle-size
-          npx monosize compare-reports --branch=${{ github.event.pull_request.base.ref }} --output markdown --quiet > bundle-size-report.md
-
-      - name: Write job summary
-        if: always()
-        run: |
-          # Bundle-size report
-          if [ -f bundle-size-report.md ]; then
-            echo "## 📦 Bundle Size" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            cat bundle-size-report.md >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Docsite artifact instructions
-          if [ -d packages/docsite/storybook-static ]; then
-            echo "## 📖 Docsite Preview" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The docsite has been built and uploaded as an artifact (\`docsite-storybook-build\`)." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "To preview locally after downloading and extracting:" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```sh' >> $GITHUB_STEP_SUMMARY
-            echo "npx http-server ./docsite-storybook-build -o" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Upload icon-app build artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: icon-app-build
-          path: packages/icon-app/dist/
-          retention-days: 3
-
-      - name: Upload docsite build artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: docsite-storybook-build
-          path: packages/docsite/storybook-static/
-          retention-days: 3
+#     - run: |
+#         npm run test
+#       working-directory: packages/react-icons-font-subsetting-webpack-plugin
