@@ -3,6 +3,7 @@ name: Node.js Package
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -11,18 +12,18 @@ jobs:
       packages: write
       contents: read
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22.x
           registry-url: https://npm.pkg.github.com/
+          cache: npm
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Build SVG library
-        run: npm run build
-        working-directory: packages/svg-icons
+        run: npx nx run @fantaracing/svg-icons:build
       - name: Publish SVG library
         run: npm publish
         working-directory: packages/svg-icons
         env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
